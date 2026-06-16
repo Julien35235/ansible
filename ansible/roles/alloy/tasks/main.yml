@@ -1,0 +1,68 @@
+---
+- name: Créer le dossier keyrings
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Installer les dépendances
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gpg
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Télécharger la clé GPG Grafana
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+    creates: /etc/apt/keyrings/grafana.gpg
+
+- name: Ajouter le dépôt Grafana
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+    filename: grafana
+    state: present
+
+- name: Installer Alloy
+  ansible.builtin.apt:
+    name: alloy
+    state: present
+    update_cache: true
+
+- name: Vérifier si Docker est installé
+  ansible.builtin.command: docker --version
+  register: docker_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Ajouter alloy au groupe docker
+  ansible.builtin.user:
+    name: alloy
+    groups: docker
+    append: true
+  when: docker_check.rc == 0
+  ignore_errors: true
+
+- name: Déployer la configuration Alloy
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: /etc/alloy/config.alloy
+    owner: alloy
+    group: alloy
+    mode: '0640'
+  notify: Restart alloy
+
+- name: Réinitialiser les erreurs du service
+  ansible.builtin.command: systemctl reset-failed alloy.service
+  ignore_errors: true
+  changed_when: false
+
+- name: Activer et démarrer Alloy
+  ansible.builtin.systemd:
+    name: alloy
+    enabled: true
+    state: started
+    daemon_reload: true
+

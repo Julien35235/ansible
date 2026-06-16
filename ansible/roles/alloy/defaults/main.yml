@@ -1,0 +1,2 @@
+loki_url: "http://172.16.12.15:3100"
+prometheus_url: "http://172.16.12.15:9090/api/v1/write"

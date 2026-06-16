@@ -1,0 +1,20 @@
+---
+- name: Test de connexion
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Ping
+      ansible.builtin.ping:
+
+    - name: Afficher le hostname
+      ansible.builtin.debug:
+        msg: "Connecté sur {{ inventory_hostname }} ({{ ansible_hostname }})"
+
+    - name: Afficher l'IP
+      ansible.builtin.debug:
+        msg: "IP : {{ ansible_default_ipv4.address }}"
+
+    - name: Afficher l'OS
+      ansible.builtin.debug:
+        msg: "OS : {{ ansible_distribution }} {{ ansible_distribution_version }}"

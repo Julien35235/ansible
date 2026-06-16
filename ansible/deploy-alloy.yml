@@ -1,0 +1,19 @@
+---
+- name: Déploiement Alloy sur tous les serveurs
+  hosts: all
+  become: true
+
+  roles:
+    - role: alloy
+
+  post_tasks:
+    - name: Vérifier que Alloy tourne
+      ansible.builtin.systemd:
+        name: alloy
+      register: alloy_status
+
+    - name: Afficher le statut
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} → Alloy est {{ alloy_status.status.ActiveState }}"
+
+
