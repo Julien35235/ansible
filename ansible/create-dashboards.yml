@@ -2,9 +2,9 @@
 - name: Créer un dashboard par serveur
   hosts: localhost
   vars:
-    grafana_url: "http://172.16.12.9:3003"
+    grafana_url: "http://xxx.xxx.xxx:3003"
     grafana_user: "admin"
-    grafana_password: "5Oix41*9F0%GmBp#"
+    grafana_password: "xxxxxxxxxxx"
 
   tasks:
     - name: Créer dashboard pour chaque serveur
