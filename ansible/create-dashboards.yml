@@ -1,0 +1,139 @@
+---
+- name: Créer un dashboard par serveur
+  hosts: localhost
+  vars:
+    grafana_url: "http://172.16.12.9:3003"
+    grafana_user: "admin"
+    grafana_password: "5Oix41*9F0%GmBp#"
+
+  tasks:
+    - name: Créer dashboard pour chaque serveur
+      ansible.builtin.uri:
+        url: "{{ grafana_url }}/api/dashboards/db"
+        method: POST
+        user: "{{ grafana_user }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        body_format: json
+        body:
+          dashboard:
+            title: "Serveur - {{ item }}"
+            tags: ["serveur", "{{ item }}"]
+            panels:
+              - id: 1
+                title: "CPU Usage"
+                type: "timeseries"
+                datasource: "Prometheus"
+                gridPos:
+                  x: 0
+                  y: 0
+                  w: 12
+                  h: 8
+                targets:
+                  - expr: "100 - (avg by (host) (rate(node_cpu_seconds_total{mode='idle', host='{{ item }}'}[5m])) * 100)"
+                    legendFormat: "CPU {{ item }}"
+
+              - id: 2
+                title: "RAM Usage"
+                type: "gauge"
+                datasource: "Prometheus"
+                gridPos:
+                  x: 12
+                  y: 0
+                  w: 6
+                  h: 8
+                options:
+                  reduceOptions:
+                    calcs: ["lastNotNull"]
+                  minVizWidth: 75
+                  minVizHeight: 75
+                fieldConfig:
+                  defaults:
+                    min: 0
+                    max: 100
+                    unit: "percent"
+                    thresholds:
+                      mode: "absolute"
+                      steps:
+                        - color: "green"
+                          value: 0
+                        - color: "orange"
+                          value: 70
+                        - color: "red"
+                          value: 90
+                targets:
+                  - expr: "(1 - (node_memory_MemAvailable_bytes{host='{{ item }}'} / node_memory_MemTotal_bytes{host='{{ item }}'})) * 100"
+                    legendFormat: "RAM {{ item }}"
+
+              - id: 3
+                title: "Disk Usage"
+                type: "gauge"
+                datasource: "Prometheus"
+                gridPos:
+                  x: 18
+                  y: 0
+                  w: 6
+                  h: 8
+                options:
+                  reduceOptions:
+                    calcs: ["lastNotNull"]
+                fieldConfig:
+                  defaults:
+                    min: 0
+                    max: 100
+                    unit: "percent"
+                    thresholds:
+                      mode: "absolute"
+                      steps:
+                        - color: "green"
+                          value: 0
+                        - color: "orange"
+                          value: 70
+                        - color: "red"
+                          value: 90
+                targets:
+                  - expr: "(1 - (node_filesystem_avail_bytes{host='{{ item }}', mountpoint='/'} / node_filesystem_size_bytes{host='{{ item }}', mountpoint='/'})) * 100"
+                    legendFormat: "Disk {{ item }}"
+
+              - id: 4
+                title: "Network Traffic"
+                type: "timeseries"
+                datasource: "Prometheus"
+                gridPos:
+                  x: 0
+                  y: 8
+                  w: 12
+                  h: 8
+                fieldConfig:
+                  defaults:
+                    unit: "bytes"
+                targets:
+                  - expr: "rate(node_network_receive_bytes_total{host='{{ item }}'}[5m])"
+                    legendFormat: "In {{ item }}"
+                  - expr: "rate(node_network_transmit_bytes_total{host='{{ item }}'}[5m])"
+                    legendFormat: "Out {{ item }}"
+
+              - id: 5
+                title: "Logs"
+                type: "logs"
+                datasource: "Loki"
+                gridPos:
+                  x: 0
+                  y: 16
+                  w: 24
+                  h: 8
+                targets:
+                  - expr: "{host='{{ item }}'}"
+                    legendFormat: ""
+
+          overwrite: true
+          folderId: 0
+
+      loop:
+        - SRV-Collecte
+        - CasaOS
+        - Adguard-DHCP
+        - pdm
+        - pbs
+        - ia-librechat-jde
+        - ia-ollama-jde
